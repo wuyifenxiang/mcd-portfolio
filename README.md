@@ -132,6 +132,12 @@ python tools\publish_github.py --issue
 - **fine-grained token**：`Contents(RW)` + `Issues(RW)` + `Administration(RW)`
   （或 `Repository creation(RW)`）。只勾 Contents + Issues 会在建库那一步报 403。
 
+> ⚠️ **两类权限别混为一谈**：`--issue` 是向**他人拥有的仓库**
+> （`M-China/mcd-developer-innovation-challenge`）写 Issue，而 fine-grained token
+> 只能对自己名下的仓库授权，**无法**给别人的仓库开 Issues 写权限，因此只用
+> fine-grained token 时这一步基本会失败。实践上跑 `--issue` 用 **classic token 的
+> `repo` scope 最稳**；只建自己的库、不提 Issue 的话，fine-grained 完全够用。
+
 发布前会自动过四道自检，任何一道不过就停手（`--dry-run` 只跑第 1、2 道，
 **不会**初始化仓库、写 git 身份或提交代码）：
 
