@@ -6,17 +6,15 @@
 拉齐，算清哪些钱正在白白流失，输出一张可以直接截图的持仓卡。
 
 ```
-你的麦当劳账户里，有 1 张券 26 天后归零，6 张券还没领。
+你的麦当劳账户里，有 2 张券 26 天后归零，6 张券还没领。
 ```
 
 ## 它长什么样
 
-![麦门持仓卡片示例](docs/preview.svg)
+![麦门持仓卡片示例](docs/preview.png)
 
-> 这是一份真实运行结果（2026-10-10 实测）。运行后会生成 `card.html`，
-> 直接打开、截图即可分享。
-
-同一份结果的完整 HTML 见 [`docs/example-card.html`](docs/example-card.html)。
+> 上图为脚本真实输出的卡片（2026-10-10 实测）。运行后会生成 `card.html`，
+> 直接打开、截图即可分享。完整 HTML 见 [`docs/example-card.html`](docs/example-card.html)。
 
 ## 为什么做这个
 
@@ -173,7 +171,7 @@ mcd-portfolio/
 ├── .gitignore
 ├── docs/
 │   ├── example-card.html           # 真实运行结果（完整卡片）
-│   └── preview.svg                 # README 引用的卡片预览图
+│   └── preview.png                # 卡片预览图（由真实输出截图，2x）
 ├── tools/
 │   └── publish_github.py           # 一键发布到 GitHub（含密钥扫描）
 └── skills/mcd-portfolio/
@@ -192,6 +190,8 @@ mcd-portfolio/
 - **不下单、不支付。** 本项目不触碰任何订单创建类工具。
 - **不编数字。** MCP 不返回券面金额，所以卡片只报张数和剩余天数，
   绝不折算成"你的账户价值 ¥XX"。
+- **取不到就说取不到。** 任一 MCP 工具失败时，卡片会标注「未取到」并加一条提示条，
+  绝不把"没取到"写成"0 张"；全部工具都失败时以非 0 退出码收场。
 - **Token 不进仓库。** 全程只走环境变量 `MCD_MCP_TOKEN`。
 
 ## 许可

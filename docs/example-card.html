@@ -52,6 +52,19 @@
     color: var(--ink);
     line-height: 1.5;
   }
+  .warn {
+    padding: 12px 28px;
+    background: #FDECEA;
+    border-bottom: 1px solid #F6CFC9;
+    color: #A81E12;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .warn b {
+    display: inline-block; width: 17px; height: 17px; margin-right: 6px;
+    border-radius: 50%; background: #DA291C; color: #fff;
+    font-size: 12px; line-height: 17px; text-align: center; vertical-align: 1px;
+  }
   .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -61,7 +74,8 @@
   .stat:last-child { border-right: 0; }
   .stat .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; }
   .stat .v { font-size: 34px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .stat .u { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .stat .v .u { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .stat .v .na { font-size: 18px; font-weight: 500; color: #A9A7A1; }
   .stat.hot .v { color: var(--red); }
   .sec { padding: 20px 28px; border-bottom: 1px solid var(--line); }
   .sec:last-of-type { border-bottom: 0; }
@@ -123,10 +137,11 @@
       <h1>麦门持仓</h1>
       <span>MCD PORTFOLIO</span>
     </div>
-    <div class="stamp">2026-10-10 16:26<br>星期六</div>
+    <div class="stamp">2026-10-10 21:07<br>星期六</div>
   </div>
 
-  <div class="headline">你的麦当劳账户里，有 1 张券 26 天后归零，6 张券还没领。</div>
+  <div class="headline">你的麦当劳账户里，有 2 张券 26 天后归零，6 张券还没领。</div>
+  
 
   <div class="stats">
     <div class="stat">
@@ -144,13 +159,15 @@
   </div>
 
   <div class="sec"><h2>即将归零<span class="tag">优先处理</span></h2><div class="risk"><div class="days"><b>26</b><i>天后归零</i></div><div class="body"><div class="name">招行麦辣鸡腿汉堡通用券</div><div class="meta">有效期至 <b>2026-11-05</b><br>每日可核销时段 <b>00:00–04:59、10:30–23:59</b><br><b>现在可用</b><br>到店专用 · 外送专用</div></div></div><div class="risk"><div class="days"><b>26</b><i>天后归零</i></div><div class="body"><div class="name">招行圆筒冰淇淋1份</div><div class="meta">有效期至 <b>2026-11-05</b><br>每日可核销时段 <b>00:00–02:59、05:00–23:59</b><br><b>现在可用</b><br>到店专用</div></div></div></div>
+  
 
   <div class="sec"><h2>待领取 · 麦麦省<span class="tag">6 张</span></h2><div class="chips"><span class="chip dup" data-n="3">巧克力味厚松饼猪柳蛋套餐</span><span class="chip">免费脆薯饼</span><span class="chip">人气麦旋风买一送一</span><span class="chip">9.9元中杯冰美式</span></div></div>
 
-  <div class="sec"><h2>活动日历<span class="tag">今日 11 条</span></h2><ul class="list"><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">韩式风味蘸酱上新❤️就「酱」心有所「薯」<div style="color:#6B6A66;font-size:12px;margin-top:3px">🆕韩式辣椒黄油风味酱</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">🫐一口爆汁！蓝莓爆爆珠麦旋风上新<div style="color:#6B6A66;font-size:12px;margin-top:3px">🫐蓝莓爆爆珠麦旋风上新！</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">参与麦金喜抽奖，🉐[积分霸王餐]<div style="color:#6B6A66;font-size:12px;margin-top:3px">宝子😸天上不会掉馅饼</div></span></li><li><span class="d">10/22</span><span class="t">第三周周边即将开售✨限定主题丝巾！<div style="color:#6B6A66;font-size:12px;margin-top:3px">丝巾搭配棒球帽的潮流谁懂😎</div></span></li><li><span class="d">10/09</span><span class="t">麦当劳联动G-DRAGON<div style="color:#6B6A66;font-size:12px;margin-top:3px">带来韩式风味系列新品❗️</div></span></li></ul></div>
+  <div class="sec"><h2>活动日历<span class="tag">今日 15 条 · 展示 5 条</span></h2><ul class="list"><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">韩式风味蘸酱上新❤️就「酱」心有所「薯」<div style="color:#6B6A66;font-size:12px;margin-top:3px">🆕韩式辣椒黄油风味酱</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">麦当劳 X PEACEMINUSONE<div style="color:#6B6A66;font-size:12px;margin-top:3px">GD同款联名复古棒球帽</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">麦当劳联动G-DRAGON<div style="color:#6B6A66;font-size:12px;margin-top:3px">带来韩式风味系列新品❗️</div></span></li><li><span class="d">10/11</span><span class="t">“韩”风刮到了四件套~龙焰鸡腿堡来袭！<div style="color:#6B6A66;font-size:12px;margin-top:3px">🍔麦金卡点「龙焰鸡腿堡」四件套29元起</div></span></li><li><span class="d">10/11</span><span class="t">快来一起参加麦麦派对吧！<div style="color:#6B6A66;font-size:12px;margin-top:3px">遛娃好去处🎉麦当劳趣读派对！</div></span></li></ul></div>
 
   <div class="foot">
     <div>已持有 2 张券 · 麦麦省待领 6 张 · 可用积分 0 分 · 最快一张 26 天后归零。</div>
+    <div></div>
     <div>数据来源：<b>麦当劳 MCP Server</b>（mcp.mcd.cn）实时读取 · 卡券与积分以麦当劳官方渠道为准</div>
     <div>麦当劳 MCP × WorkBuddy · 1024 程序员节创意开发大赛参赛作品</div>
   </div>
