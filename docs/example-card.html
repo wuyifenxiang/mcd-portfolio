@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麦门持仓 · MCD PORTFOLIO</title>
+<style>
+  :root {
+    --red: #DA291C;
+    --yellow: #FFC72C;
+    --ink: #27251F;
+    --muted: #6B6A66;
+    --line: #E8E6E0;
+    --bg: #F4F2ED;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--bg);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: 720px;
+    max-width: 100%;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .head {
+    background: var(--ink);
+    color: #fff;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .head .brand { display: flex; align-items: baseline; gap: 10px; }
+  .head .brand h1 { font-size: 21px; font-weight: 600; margin: 0; letter-spacing: 1px; }
+  .head .brand span { font-size: 11px; letter-spacing: 2.5px; color: var(--yellow); font-weight: 500; }
+  .head .stamp { text-align: right; font-size: 12px; color: #B9B7B1; line-height: 1.6; }
+  .headline {
+    padding: 16px 28px;
+    background: #FFFBF0;
+    border-bottom: 1px solid #F3E7C8;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .stat { padding: 22px 28px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; }
+  .stat .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; }
+  .stat .v { font-size: 34px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .u { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .stat.hot .v { color: var(--red); }
+  .sec { padding: 20px 28px; border-bottom: 1px solid var(--line); }
+  .sec:last-of-type { border-bottom: 0; }
+  .sec h2 {
+    font-size: 12px; font-weight: 600; margin: 0 0 14px;
+    color: var(--muted); letter-spacing: 1.5px;
+  }
+  .sec h2 .tag {
+    display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 20px;
+    background: var(--yellow); color: var(--ink); font-size: 11px; letter-spacing: 0;
+  }
+  .risk {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 12px;
+    background: #FFF7F6; border: 1px solid #F7D5D1;
+  }
+  .risk + .risk { margin-top: 10px; }
+  .risk .days {
+    flex: 0 0 auto; min-width: 60px; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .risk .days b { display: block; font-size: 24px; font-weight: 600; color: var(--red); line-height: 1.1; }
+  .risk .days i { font-style: normal; font-size: 11px; color: var(--muted); }
+  .risk .body { flex: 1 1 auto; min-width: 0; }
+  .risk .body .name { font-size: 15px; font-weight: 500; margin-bottom: 5px; }
+  .risk .body .meta { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .risk .body .meta b { color: var(--ink); font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 13px; border-radius: 20px; font-size: 13px;
+    background: #F4F2ED; border: 1px solid var(--line);
+  }
+  .chip.dup::after { content: " ×" attr(data-n); font-size: 11px; color: var(--muted); }
+  .list { margin: 0; padding: 0; list-style: none; }
+  .list li {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 14px;
+  }
+  .list li:last-child { border-bottom: 0; }
+  .list li .d {
+    flex: 0 0 52px; font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .list li .t { flex: 1 1 auto; line-height: 1.55; }
+  .empty { font-size: 13px; color: #A9A7A1; }
+  .foot {
+    padding: 16px 28px 20px; background: #FAF9F6;
+    font-size: 11px; color: #A9A7A1; line-height: 1.9;
+    border-top: 1px solid var(--line);
+  }
+  .foot b { color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="head">
+    <div class="brand">
+      <h1>麦门持仓</h1>
+      <span>MCD PORTFOLIO</span>
+    </div>
+    <div class="stamp">2026-10-10 16:26<br>星期六</div>
+  </div>
+
+  <div class="headline">你的麦当劳账户里，有 1 张券 26 天后归零，6 张券还没领。</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="k">已持有券</div>
+      <div class="v">2<span class="u">张</span></div>
+    </div>
+    <div class="stat hot">
+      <div class="k">待领取券</div>
+      <div class="v">6<span class="u">张</span></div>
+    </div>
+    <div class="stat">
+      <div class="k">可用积分</div>
+      <div class="v">0<span class="u">分</span></div>
+    </div>
+  </div>
+
+  <div class="sec"><h2>即将归零<span class="tag">优先处理</span></h2><div class="risk"><div class="days"><b>26</b><i>天后归零</i></div><div class="body"><div class="name">招行麦辣鸡腿汉堡通用券</div><div class="meta">有效期至 <b>2026-11-05</b><br>每日可核销时段 <b>00:00–04:59、10:30–23:59</b><br><b>现在可用</b><br>到店专用 · 外送专用</div></div></div><div class="risk"><div class="days"><b>26</b><i>天后归零</i></div><div class="body"><div class="name">招行圆筒冰淇淋1份</div><div class="meta">有效期至 <b>2026-11-05</b><br>每日可核销时段 <b>00:00–02:59、05:00–23:59</b><br><b>现在可用</b><br>到店专用</div></div></div></div>
+
+  <div class="sec"><h2>待领取 · 麦麦省<span class="tag">6 张</span></h2><div class="chips"><span class="chip dup" data-n="3">巧克力味厚松饼猪柳蛋套餐</span><span class="chip">免费脆薯饼</span><span class="chip">人气麦旋风买一送一</span><span class="chip">9.9元中杯冰美式</span></div></div>
+
+  <div class="sec"><h2>活动日历<span class="tag">今日 11 条</span></h2><ul class="list"><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">韩式风味蘸酱上新❤️就「酱」心有所「薯」<div style="color:#6B6A66;font-size:12px;margin-top:3px">🆕韩式辣椒黄油风味酱</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">🫐一口爆汁！蓝莓爆爆珠麦旋风上新<div style="color:#6B6A66;font-size:12px;margin-top:3px">🫐蓝莓爆爆珠麦旋风上新！</div></span></li><li><span class="d" style="color:#DA291C;font-weight:500">今日</span><span class="t">参与麦金喜抽奖，🉐[积分霸王餐]<div style="color:#6B6A66;font-size:12px;margin-top:3px">宝子😸天上不会掉馅饼</div></span></li><li><span class="d">10/22</span><span class="t">第三周周边即将开售✨限定主题丝巾！<div style="color:#6B6A66;font-size:12px;margin-top:3px">丝巾搭配棒球帽的潮流谁懂😎</div></span></li><li><span class="d">10/09</span><span class="t">麦当劳联动G-DRAGON<div style="color:#6B6A66;font-size:12px;margin-top:3px">带来韩式风味系列新品❗️</div></span></li></ul></div>
+
+  <div class="foot">
+    <div>已持有 2 张券 · 麦麦省待领 6 张 · 可用积分 0 分 · 最快一张 26 天后归零。</div>
+    <div>数据来源：<b>麦当劳 MCP Server</b>（mcp.mcd.cn）实时读取 · 卡券与积分以麦当劳官方渠道为准</div>
+    <div>麦当劳 MCP × WorkBuddy · 1024 程序员节创意开发大赛参赛作品</div>
+  </div>
+
+</div>
+</body>
+</html>

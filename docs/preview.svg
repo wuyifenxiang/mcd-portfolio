@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1024" width="720" height="1024" role="img" aria-label="麦门持仓卡片示例">
+<title>麦门持仓 · 卡片示例</title>
+<style>
+  text { font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif; }
+  .w { fill:#FFFFFF; }
+  .ink { fill:#27251F; }
+  .mut { fill:#6B6A66; }
+  .red { fill:#DA291C; }
+  .yel { fill:#FFC72C; }
+  .dim { fill:#B9B7B1; }
+  .faint { fill:#A9A7A1; }
+</style>
+
+<rect x="0" y="0" width="720" height="1024" fill="#FFFFFF" stroke="#E8E6E0" stroke-width="1"/>
+
+<rect x="0" y="0" width="720" height="86" fill="#27251F"/>
+<text class="w" x="28" y="44" font-size="24" font-weight="600" letter-spacing="1">麦门持仓</text>
+<text class="yel" x="168" y="42" font-size="11" font-weight="500" letter-spacing="2.5">MCD PORTFOLIO</text>
+<text class="dim" x="692" y="38" font-size="12" text-anchor="end">2026-10-10 16:25</text>
+<text class="dim" x="692" y="58" font-size="12" text-anchor="end">星期六</text>
+
+<rect x="0" y="86" width="720" height="60" fill="#FFFBF0"/>
+<text class="ink" x="28" y="122" font-size="17" font-weight="500">你的麦当劳账户里，有 1 张券 26 天后归零，6 张券还没领。</text>
+<line x1="0" y1="146" x2="720" y2="146" stroke="#F3E7C8" stroke-width="1"/>
+
+<line x1="240" y1="168" x2="240" y2="216" stroke="#E8E6E0" stroke-width="1"/>
+<line x1="480" y1="168" x2="480" y2="216" stroke="#E8E6E0" stroke-width="1"/>
+<text class="mut" x="28" y="176" font-size="12">已持有券</text>
+<text class="ink" x="28" y="212" font-size="34" font-weight="600">2</text>
+<text class="mut" x="54" y="212" font-size="13">张</text>
+<text class="mut" x="268" y="176" font-size="12">待领取券</text>
+<text class="red" x="268" y="212" font-size="34" font-weight="600">6</text>
+<text class="mut" x="294" y="212" font-size="13">张</text>
+<text class="mut" x="508" y="176" font-size="12">可用积分</text>
+<text class="ink" x="508" y="212" font-size="34" font-weight="600">0</text>
+<text class="mut" x="534" y="212" font-size="13">分</text>
+<line x1="0" y1="240" x2="720" y2="240" stroke="#E8E6E0" stroke-width="1"/>
+
+<text class="mut" x="28" y="282" font-size="12" font-weight="600" letter-spacing="1.5">即将归零</text>
+<rect x="90" y="270" width="72" height="18" rx="9" fill="#FFC72C"/>
+<text class="ink" x="126" y="283" font-size="11" text-anchor="middle">优先处理</text>
+
+<rect x="28" y="300" width="664" height="124" rx="12" fill="#FFF7F6" stroke="#F7D5D1" stroke-width="1"/>
+<text class="red" x="74" y="352" font-size="24" font-weight="600" text-anchor="middle">26</text>
+<text class="mut" x="74" y="372" font-size="11" text-anchor="middle">天后归零</text>
+<text class="ink" x="118" y="330" font-size="15" font-weight="500">招行麦辣鸡腿汉堡通用券</text>
+<text class="mut" x="118" y="358" font-size="12">有效期至 <tspan class="ink" font-weight="500">2026-11-05</tspan></text>
+<text class="mut" x="118" y="378" font-size="12">每日可核销时段 <tspan class="ink" font-weight="500">00:00–04:59、10:30–23:59</tspan></text>
+<text class="ink" x="118" y="398" font-size="12" font-weight="500">现在可用</text>
+<text class="mut" x="118" y="418" font-size="12">到店专用 · 外送专用</text>
+
+<rect x="28" y="436" width="664" height="124" rx="12" fill="#FFF7F6" stroke="#F7D5D1" stroke-width="1"/>
+<text class="red" x="74" y="488" font-size="24" font-weight="600" text-anchor="middle">26</text>
+<text class="mut" x="74" y="508" font-size="11" text-anchor="middle">天后归零</text>
+<text class="ink" x="118" y="466" font-size="15" font-weight="500">招行圆筒冰淇淋1份</text>
+<text class="mut" x="118" y="494" font-size="12">有效期至 <tspan class="ink" font-weight="500">2026-11-05</tspan></text>
+<text class="mut" x="118" y="514" font-size="12">每日可核销时段 <tspan class="ink" font-weight="500">00:00–02:59、05:00–23:59</tspan></text>
+<text class="ink" x="118" y="534" font-size="12" font-weight="500">现在可用</text>
+<text class="mut" x="118" y="554" font-size="12">到店专用</text>
+<line x1="0" y1="584" x2="720" y2="584" stroke="#E8E6E0" stroke-width="1"/>
+
+<text class="mut" x="28" y="626" font-size="12" font-weight="600" letter-spacing="1.5">待领取 · 麦麦省</text>
+<rect x="133" y="614" width="52" height="18" rx="9" fill="#FFC72C"/>
+<text class="ink" x="159" y="627" font-size="11" text-anchor="middle">6 张</text>
+<rect x="28" y="642" width="232" height="36" rx="18" fill="#F4F2ED" stroke="#E8E6E0" stroke-width="1"/>
+<text class="ink" x="46" y="665" font-size="13">巧克力味厚松饼猪柳蛋套餐</text>
+<text class="mut" x="240" y="665" font-size="11">×3</text>
+<rect x="268" y="642" width="100" height="36" rx="18" fill="#F4F2ED" stroke="#E8E6E0" stroke-width="1"/>
+<text class="ink" x="286" y="665" font-size="13">免费脆薯饼</text>
+<rect x="376" y="642" width="145" height="36" rx="18" fill="#F4F2ED" stroke="#E8E6E0" stroke-width="1"/>
+<text class="ink" x="394" y="665" font-size="13">人气麦旋风买一送一</text>
+<rect x="529" y="642" width="146" height="36" rx="18" fill="#F4F2ED" stroke="#E8E6E0" stroke-width="1"/>
+<text class="ink" x="547" y="665" font-size="13">9.9元中杯冰美式</text>
+<line x1="0" y1="700" x2="720" y2="700" stroke="#E8E6E0" stroke-width="1"/>
+
+<text class="mut" x="28" y="742" font-size="12" font-weight="600" letter-spacing="1.5">活动日历</text>
+<rect x="90" y="730" width="76" height="18" rx="9" fill="#FFC72C"/>
+<text class="ink" x="128" y="743" font-size="11" text-anchor="middle">今日 11 条</text>
+
+<text class="red" x="28" y="780" font-size="12" font-weight="500">今日</text>
+<text class="ink" x="92" y="780" font-size="14">韩式风味蘸酱上新❤️就「酱」心有所「薯」</text>
+<text class="mut" x="92" y="798" font-size="12">🆕韩式辣椒黄油风味酱</text>
+<line x1="28" y1="812" x2="692" y2="812" stroke="#E8E6E0" stroke-width="1" stroke-dasharray="3 3"/>
+
+<text class="red" x="28" y="838" font-size="12" font-weight="500">今日</text>
+<text class="ink" x="92" y="838" font-size="14">🫐一口爆汁！蓝莓爆爆珠麦旋风上新</text>
+<text class="mut" x="92" y="856" font-size="12">🫐蓝莓爆爆珠麦旋风上新！</text>
+<line x1="28" y1="870" x2="692" y2="870" stroke="#E8E6E0" stroke-width="1" stroke-dasharray="3 3"/>
+
+<text class="red" x="28" y="896" font-size="12" font-weight="500">今日</text>
+<text class="ink" x="92" y="896" font-size="14">参与麦金喜抽奖，🉐[积分霸王餐]</text>
+<text class="mut" x="92" y="914" font-size="12">宝子😸天上不会掉馅饼</text>
+
+<rect x="0" y="936" width="720" height="88" fill="#FAF9F6"/>
+<line x1="0" y1="936" x2="720" y2="936" stroke="#E8E6E0" stroke-width="1"/>
+<text class="faint" x="28" y="962" font-size="11">已持有 2 张券 · 麦麦省待领 6 张 · 可用积分 0 分 · 最快一张 26 天后归零。</text>
+<text class="faint" x="28" y="984" font-size="11">数据来源：<tspan class="mut">麦当劳 MCP Server</tspan>（mcp.mcd.cn）实时读取 · 卡券与积分以麦当劳官方渠道为准</text>
+<text class="faint" x="28" y="1006" font-size="11">麦当劳 MCP × WorkBuddy · 1024 程序员节创意开发大赛参赛作品</text>
+</svg>

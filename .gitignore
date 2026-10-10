@@ -1,0 +1,16 @@
+# 本地生成物
+card.html
+data.json
+
+# 凭证绝不入库
+.env
+*.env
+token.txt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc

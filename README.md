@@ -1,0 +1,131 @@
+# 麦门持仓 · mcd-portfolio
+
+> 你的麦当劳账户里，有几张券正在悄悄过期？
+
+一条命令，把散落在麦当劳 App 各处的**优惠券、麦麦省待领券、积分和当月活动**
+拉齐，算清哪些钱正在白白流失，输出一张可以直接截图的持仓卡。
+
+```
+你的麦当劳账户里，有 1 张券 26 天后归零，6 张券还没领。
+```
+
+## 它长什么样
+
+![麦门持仓卡片示例](docs/preview.svg)
+
+> 这是一份真实运行结果（2026-10-10 实测）。运行后会生成 `card.html`，
+> 直接打开、截图即可分享。
+
+同一份结果的完整 HTML 见 [`docs/example-card.html`](docs/example-card.html)。
+
+## 为什么做这个
+
+麦当劳的优惠券资产分散在 App 的不同入口，用户普遍在三种地方白白损失：
+
+| 损失 | 说明 |
+|---|---|
+| **不知道有券** | 麦麦省的可领券不会自动到账，得主动领。实测一个普通账号的**待领券数量是已持有券的 3 倍**。 |
+| **不知道什么时候过期** | 到期日藏在券详情里，过期即作废，一声不响。 |
+| **不知道什么时候能用** | 同一张券在一天内的可核销时段是分段开放的，带着"不能用"的券去门店很扫兴。 |
+
+第三点尤其没人讲：麦辣鸡腿堡券 **10:30 之前用不了**（正餐菜单未开），
+圆筒冰淇淋券 **03:00–04:59 用不了**。这些信息藏在 MCP 返回的字段里，
+官方文档没写，是你自己在券包界面上永远看不到的。
+
+## 快速开始
+
+### 1. 申请 MCP Token
+
+打开 <https://open.mcd.cn/mcp> → 右上角登录（手机号验证）→ 控制台 → 激活 → 复制 Token。
+
+免费，一分钟搞定。
+
+### 2. 配置
+
+```bash
+export MCD_MCP_TOKEN=<你的Token>
+```
+
+### 3. 跑
+
+```bash
+python3 skills/mcd-portfolio/scripts/mcd_portfolio.py --out card.html
+```
+
+只用 Python 标准库，**零依赖**，Python 3.9+ 均可。
+
+看到这样的输出就成了：
+
+```
+[+] 持仓卡已生成：/path/to/card.html
+    已持有券 2 张 | 麦麦省待领 6 张 | 可用积分 0 分
+    ! 招行麦辣鸡腿汉堡通用券 — 26 天后归零
+    ! 招行圆筒冰淇淋1份 — 26 天后归零
+```
+
+### 可选参数
+
+| 参数 | 说明 |
+|---|---|
+| `--claim` | 先领光麦麦省全部可领券，再生成卡片（**写操作**） |
+| `--json data.json` | 额外导出结构化数据，方便二次处理 |
+| `--out PATH` | 指定卡片输出路径 |
+| `--template PATH` | 换用自定义卡片模板 |
+
+## 在 WorkBuddy 里使用
+
+本仓库同时是一个标准 WorkBuddy Skill：
+
+1. 把 `skills/mcd-portfolio/` 整个目录拷到 `~/.workbuddy/skills/` 下
+2. 按 `mcp-config.example.json` 配好 `mcd-mcp` 连接器并启用
+3. 对 WorkBuddy 说「看看我的麦当劳券」或「给我的麦当劳账户做个体检」
+
+## 依赖的 MCP 工具
+
+| Tool | 用途 |
+|---|---|
+| `now-time-info` | 服务器时间，倒计时的基准 |
+| `query-my-coupons` | 已持有券、有效期、每日可核销时段 |
+| `available-coupons` | 麦麦省可领取的券 |
+| `query-my-account` | 积分账户 |
+| `campaign-calendar` | 当月活动日历 |
+| `auto-bind-coupons` | 一键领券（需用户授权） |
+
+详细格式说明见 [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md) 与
+[`skills/mcd-portfolio/references/mcp-tools.md`](skills/mcd-portfolio/references/mcp-tools.md)。
+
+## 项目结构
+
+```
+mcd-portfolio/
+├── README.md                    # 本文件
+├── CONTEST_DECLARATION.md       # 参赛声明（官方模板，内容未改动）
+├── MCP_INTEGRATION.md           # MCP 集成说明
+├── mcp-config.example.json      # MCP 配置示例（仅环境变量占位符）
+├── workbuddy.md                 # WorkBuddy 开发对话上下文
+└── skills/mcd-portfolio/
+    ├── SKILL.md                 # Skill 定义与工作流
+    ├── scripts/
+    │   └── mcd_portfolio.py     # 取数 / 解析 / 计算 / 渲染
+    ├── assets/
+    │   └── card-template.html   # 卡片模板
+    └── references/
+        └── mcp-tools.md         # MCP 返回格式速查
+```
+
+## 边界
+
+- **只读为主。** 唯一的写操作是 `auto-bind-coupons`，且必须经你明确同意。
+- **不下单、不支付。** 本项目不触碰任何订单创建类工具。
+- **不编数字。** MCP 不返回券面金额，所以卡片只报张数和剩余天数，
+  绝不折算成"你的账户价值 ¥XX"。
+- **Token 不进仓库。** 全程只走环境变量 `MCD_MCP_TOKEN`。
+
+## 许可
+
+MIT
+
+---
+
+本项目为麦当劳程序员节创意开发大赛参赛作品，由参赛者独立开发，**非麦当劳官方产品**。
+餐品信息、价格及供应状态以麦当劳官方渠道的实时结果为准。
