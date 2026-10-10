@@ -132,21 +132,26 @@ Token 获取：GitHub → Settings → Developer settings → Personal access to
 
 ```
 mcd-portfolio/
-├── README.md                    # 本文件
-├── CONTEST_DECLARATION.md       # 参赛声明（官方模板，内容未改动）
-├── MCP_INTEGRATION.md           # MCP 集成说明
-├── mcp-config.example.json      # MCP 配置示例（仅环境变量占位符）
-├── workbuddy.md                 # WorkBuddy 开发对话上下文
+├── README.md                       # 本文件
+├── CONTEST_DECLARATION.md          # 参赛声明（官方模板，内容未改动）
+├── MCP_INTEGRATION.md              # MCP 集成说明
+├── mcp-config.example.json         # MCP 配置示例（仅环境变量占位符）
+├── workbuddy.md                    # WorkBuddy 开发对话上下文
+├── LICENSE                         # MIT
+├── .gitignore
+├── docs/
+│   ├── example-card.html           # 真实运行结果（完整卡片）
+│   └── preview.svg                 # README 引用的卡片预览图
 ├── tools/
-│   └── publish_github.py        # 一键发布到 GitHub（含密钥扫描）
+│   └── publish_github.py           # 一键发布到 GitHub（含密钥扫描）
 └── skills/mcd-portfolio/
-    ├── SKILL.md                 # Skill 定义与工作流
+    ├── SKILL.md                    # Skill 定义与工作流
     ├── scripts/
-    │   └── mcd_portfolio.py     # 取数 / 解析 / 计算 / 渲染
+    │   └── mcd_portfolio.py        # 取数 / 解析 / 计算 / 渲染
     ├── assets/
-    │   └── card-template.html   # 卡片模板
+    │   └── card-template.html      # 卡片模板
     └── references/
-        └── mcp-tools.md         # MCP 返回格式速查
+        └── mcp-tools.md            # MCP 返回格式速查
 ```
 
 ## 边界
