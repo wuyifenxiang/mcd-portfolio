@@ -482,6 +482,18 @@ def _next_open(windows: list[str], now: datetime | None):
     return ("ended", None)
 
 
+def _strip_images(coupons):
+    """剥掉券列表里的 image 字段，返回新列表（不改原对象）。
+
+    MCP 返回的券图是**云存储的预签名 URL**：查询串里带着云厂商 AccessKey ID
+    （`q-ak=AKID…`）与签名。`references/mcp-tools.md` 已写明「图片是带签名的临时
+    URL，可能过期，不要把图片地址写进任何长期产物」，所以任何对外产物都不该带它。
+
+    卡片模板本身不输出图片，所以 HTML 侧天然安全；需要守住的是 JSON 导出。
+    """
+    return [{k: v for k, v in c.items() if k != "image"} for c in coupons or []]
+
+
 def build_model(data: dict, now: datetime | None) -> dict:
     """把原始解析结果整理成渲染所需的模型。"""
     owned = data.get("owned_coupons") or []
@@ -1027,9 +1039,12 @@ def _run(args) -> int:
         payload["claimable_grouped"] = model["claimable_grouped"]
         payload["today_count"] = model["today_count"]
         payload["unparsed"] = model["unparsed"]
-        payload["risky"] = [
-            {k: v for k, v in c.items() if k != "image"} for c in model["risky"]
-        ]
+        # 券图是带签名的临时 URL，一律不进长期产物（见 references/mcp-tools.md）。
+        # 原先只对 risky 剥了 image，owned/claimable 漏了——于是 `--json` 导出的文件
+        # 会被本仓库自己的密钥扫描器拦下（q-ak=AKID… 命中「云厂商 AccessKey」）。
+        payload["owned_coupons"] = _strip_images(payload.get("owned_coupons"))
+        payload["claimable_coupons"] = _strip_images(payload.get("claimable_coupons"))
+        payload["risky"] = _strip_images(model["risky"])
         json_path = Path(args.json_out)
         try:
             json_path.parent.mkdir(parents=True, exist_ok=True)

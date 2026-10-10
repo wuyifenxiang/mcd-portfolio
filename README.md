@@ -92,7 +92,7 @@ python skills\mcd-portfolio\scripts\mcd_portfolio.py --out card.html
 | 参数 | 说明 |
 |---|---|
 | `--claim` | 先领光麦麦省全部可领券，再生成卡片（**写操作**） |
-| `--json data.json` | 额外导出结构化数据，方便二次处理 |
+| `--json data.json` | 额外导出结构化数据，方便二次处理。券图是带签名的临时 URL，**导出时会剥离**（见 [`references/mcp-tools.md`](skills/mcd-portfolio/references/mcp-tools.md)） |
 | `--out PATH` | 指定卡片输出路径 |
 | `--template PATH` | 换用自定义卡片模板 |
 
