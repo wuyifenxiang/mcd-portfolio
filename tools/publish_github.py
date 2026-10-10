@@ -333,6 +333,17 @@ def ensure_remote_repo(token: str, login: str, name: str, desc: str,
     return data.get("html_url", "")
 
 
+# 代理把连接掐断时的典型报错
+NETWORK_HINTS = (
+    "Empty reply from server",
+    "unexpected disconnect",
+    "RPC failed",
+    "Recv failure",
+    "Connection reset",
+    "remote end hung up",
+)
+
+
 def _git_push(root: Path, args: list[str]) -> subprocess.CompletedProcess:
     """跑 git push，并禁掉一切交互式提示，避免在无人值守时挂住。"""
     env = dict(os.environ)
@@ -342,6 +353,24 @@ def _git_push(root: Path, args: list[str]) -> subprocess.CompletedProcess:
         ["git"] + args, cwd=str(root), capture_output=True,
         text=True, encoding="utf-8", errors="replace", env=env,
     )
+
+
+def _looks_like_network_error(proc: subprocess.CompletedProcess) -> bool:
+    blob = (proc.stderr or "") + (proc.stdout or "")
+    return any(h in blob for h in NETWORK_HINTS)
+
+
+def _try_push(root: Path, args: list[str]) -> subprocess.CompletedProcess:
+    """推送，遇到代理掐连接时自动降级到 HTTP/1.1 重试一次。
+
+    很多本地代理（Clash 之类）对 git 默认的 HTTP/2 支持不好，会在 push 时
+    返回 `curl 52 Empty reply from server`。降到 HTTP/1.1 一般就好了。
+    """
+    proc = _git_push(root, args)
+    if proc.returncode == 0 or not _looks_like_network_error(proc):
+        return proc
+    warn("连接被中断，疑似代理不支持 HTTP/2，降级到 HTTP/1.1 重试…")
+    return _git_push(root, ["-c", "http.version=HTTP/1.1"] + args)
 
 
 def push_repo(root: Path, login: str, name: str, token: str,
@@ -362,7 +391,7 @@ def push_repo(root: Path, login: str, name: str, token: str,
 
     # 首选：交给系统凭证助手（Git Credential Manager 等）。
     # 这条路上 Token 不出现在任何命令行参数或配置文件里，是最干净的做法。
-    proc = _git_push(root, push_args)
+    proc = _try_push(root, push_args)
     if proc.returncode == 0:
         ok("代码已推送（使用系统已保存的凭证）")
         return
@@ -381,7 +410,7 @@ def push_repo(root: Path, login: str, name: str, token: str,
     auth_url = f"https://{login}:{token}@github.com/{login}/{name}.git"
     run(["git", "remote", "set-url", "origin", auth_url], cwd=root)
     try:
-        proc = _git_push(root, ["-c", "credential.helper="] + push_args)
+        proc = _try_push(root, ["-c", "credential.helper="] + push_args)
     finally:
         # 不论成败都换回干净地址，Token 不能留在 .git/config 里
         run(["git", "remote", "set-url", "origin", clean_url], cwd=root)
