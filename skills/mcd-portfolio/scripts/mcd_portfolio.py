@@ -385,6 +385,28 @@ def _usable_now(windows: list[str], now: datetime | None):
     return False
 
 
+def _next_open(windows: list[str], now: datetime | None):
+    """当前不可用时，下一个开放时段的起点。
+
+    返回 ('today', 'HH:MM') / ('ended', None) / ('unknown', None)。
+    只取**严格晚于**当前时刻的起点——把已经过去的时刻当成「X 后开放」是错的。
+    """
+    if not windows or now is None:
+        return ("unknown", None)
+    cur = now.strftime("%H:%M")
+    starts = []
+    for w in windows:
+        parts = w.split("-")
+        if len(parts) != 2:
+            continue
+        lo = parts[0].strip()
+        if lo and lo > cur:
+            starts.append(lo)
+    if starts:
+        return ("today", min(starts))
+    return ("ended", None)
+
+
 def build_model(data: dict, now: datetime | None) -> dict:
     """把原始解析结果整理成渲染所需的模型。"""
     owned = data.get("owned_coupons") or []
@@ -403,6 +425,7 @@ def build_model(data: dict, now: datetime | None) -> dict:
         end = _parse_date(c.get("end"))
         c["days_left"] = (end.date() - today).days if end else None
         c["usable_now"] = _usable_now(c.get("windows") or [], now)
+        c["next_open"] = _next_open(c.get("windows") or [], now)
 
     risky_all = [c for c in owned if c.get("days_left") is not None and c["days_left"] >= 0]
     risky_all.sort(key=lambda c: c["days_left"])
@@ -568,8 +591,13 @@ def _render_risk(model: dict) -> str:
         if c.get("usable_now") is True:
             metas.append('<b>现在可用</b>')
         elif c.get("usable_now") is False:
-            nxt = (c.get("windows") or ["—"])[0].split("-")[0].replace("-", ":")
-            metas.append(f"当前不可用，<b>{_e(nxt)}</b> 后开放")
+            kind, val = c.get("next_open") or ("unknown", None)
+            if kind == "today":
+                metas.append(f"当前不可用，<b>{_e(val)}</b> 后开放")
+            elif kind == "ended":
+                metas.append("当前不可用，<b>今日时段已结束</b>")
+            else:
+                metas.append("当前不可用")
         if c.get("tags"):
             metas.append(" · ".join(_e(t) for t in c["tags"]))
 
