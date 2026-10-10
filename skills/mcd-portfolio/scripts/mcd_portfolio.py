@@ -718,6 +718,35 @@ def render(model: dict, template: str) -> str:
 # 入口
 # --------------------------------------------------------------------------
 
+# auto-bind-coupons 的返回格式官方未公开，只能靠关键词判断成败。
+# 拿不准时一律返回 unknown——宁可说「未确认」，也绝不谎报成功。
+BIND_SUCCESS_HINTS = ("成功", "已领取", "领取完成", "已绑定", "绑定成功")
+BIND_FAILURE_HINTS = ("失败", "无法领取", "已过期", "库存不足", "已领完", "已结束")
+
+
+def _judge_bind(ok_flag, raw: str) -> str:
+    """返回 'ok' / 'fail' / 'unknown'。"""
+    if ok_flag is False:
+        return "fail"
+    text = _clean(raw or "")
+    if not text:
+        return "unknown"
+    low = text.lower()
+    if re.search(r'"success"\s*:\s*false', low) or re.search(r'"code"\s*:\s*[45]\d\d', low):
+        return "fail"
+    if any(h in text for h in BIND_FAILURE_HINTS):
+        return "fail"
+    if "error" in low or "exception" in low:
+        return "fail"
+    if any(h in text for h in BIND_SUCCESS_HINTS) or re.search(r'"success"\s*:\s*true', low):
+        return "ok"
+    return "unknown"
+
+
+def _claim_report(ok_flag, raw: str, before: dict, after: dict) -> dict:
+    return {"status": _judge_bind(ok_flag, raw), "before": before, "after": after}
+
+
 def collect(client: McpClient, claim: bool) -> dict:
     """依次调用 MCP 工具，收集原始数据，并记录每个工具的成败。"""
     data: dict = {}
@@ -736,8 +765,15 @@ def collect(client: McpClient, claim: bool) -> dict:
             return ""
 
     data["now_raw"] = try_call("now", "now-time-info")
+
+    pre_owned_raw = pre_claim_raw = ""
     if claim:
+        # 领券前先做一次快照，否则无法给出「领前 → 领后」的对比
+        pre_owned_raw = try_call("owned_pre", "query-my-coupons",
+                                 {"page": "1", "pageSize": "200"})
+        pre_claim_raw = try_call("claimable_pre", "available-coupons")
         data["bind_raw"] = try_call("bind", "auto-bind-coupons")
+
     data["owned_raw"] = try_call("owned", "query-my-coupons", {"page": "1", "pageSize": "200"})
     data["claimable_raw"] = try_call("claimable", "available-coupons")
     data["account_raw"] = try_call("account", "query-my-account")
@@ -750,6 +786,20 @@ def collect(client: McpClient, claim: bool) -> dict:
     data["campaigns"] = parse_campaigns(data["campaign_raw"])
     data["ok"] = ok_flags
     data["soft_fail"] = soft_fail
+
+    if claim:
+        data["claim_report"] = _claim_report(
+            ok_flags.get("bind"),
+            data.get("bind_raw") or "",
+            {
+                "owned": len(parse_owned_coupons(pre_owned_raw)),
+                "claimable": len(parse_available_coupons(pre_claim_raw)),
+            },
+            {
+                "owned": len(data["owned_coupons"]),
+                "claimable": len(data["claimable_coupons"]),
+            },
+        )
     return data
 
 
@@ -787,6 +837,31 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
+def _report_claim(data: dict) -> bool:
+    """打印领券结果。返回 True 表示领券失败。"""
+    rep = data.get("claim_report") or {}
+    status = rep.get("status")
+    before = rep.get("before") or {}
+    after = rep.get("after") or {}
+    b_o, b_c = before.get("owned"), before.get("claimable")
+    a_o, a_c = after.get("owned"), after.get("claimable")
+    delta = f"券包 {b_o} → {a_o} 张，麦麦省待领 {b_c} → {a_c} 张"
+
+    if status == "ok":
+        print(f"[*] 领券成功：{delta}")
+        return False
+    if status == "fail":
+        reason = next(
+            (s for s in (data.get("soft_fail") or []) if s.startswith("auto-bind-coupons")),
+            "",
+        )
+        print(f"[!] 领券失败：auto-bind-coupons 未成功返回。{reason}", file=sys.stderr)
+        print(f"    当前 {delta}。", file=sys.stderr)
+        return True
+    print(f"[*] 领券结果未确认：{delta}。接口未返回明确的成败信息。")
+    return False
+
+
 def _run(args) -> int:
     if not args.token:
         print(
@@ -800,8 +875,9 @@ def _run(args) -> int:
     client = McpClient(args.token, args.mcp_url)
     data = collect(client, args.claim)
 
+    claim_failed = False
     if args.claim:
-        print("[*] 已请求领取麦麦省全部可领券。")
+        claim_failed = _report_claim(data)
 
     model = build_model(data, data.get("now"))
 
@@ -847,6 +923,8 @@ def _run(args) -> int:
         return 1
     for line in soft_fail:
         print(f"    (部分数据未取到) {line}", file=sys.stderr)
+    if claim_failed:
+        return 1
     return 0
 
 
