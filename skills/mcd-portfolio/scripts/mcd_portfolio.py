@@ -161,24 +161,52 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "")).strip()
 
 
+def _to_datetime(value: str) -> datetime | None:
+    """把一个字符串尽力解析成 datetime（兼容常见格式与秒/毫秒时间戳）。"""
+    v = (value or "").strip().replace("T", " ")
+    if not v:
+        return None
+    if re.fullmatch(r"\d{10}|\d{13}", v):  # 秒 / 毫秒时间戳
+        ts = int(v)
+        if len(v) == 13:
+            ts //= 1000
+        try:
+            return datetime.fromtimestamp(ts)
+        except (OverflowError, OSError, ValueError):
+            return None
+    for fmt, n in (("%Y-%m-%d %H:%M:%S", 19), ("%Y-%m-%d %H:%M", 16), ("%Y-%m-%d", 10)):
+        try:
+            return datetime.strptime(v[:n], fmt)
+        except ValueError:
+            continue
+    return None
+
+
 def parse_now(raw: str) -> datetime | None:
-    """从 now-time-info 的返回中取出服务器时间。"""
-    candidate = None
-    m = re.search(r'"formatted"\s*:\s*"([^"]+)"', raw or "")
-    if m:
-        candidate = m.group(1)
-    if not candidate:
-        m = re.search(
-            r"(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})", raw or ""
-        )
+    """从 now-time-info 的返回中取出服务器时间。
+
+    按 formatted → datetime → timestamp 的顺序逐个尝试，任何一个能解析就用它。
+    原实现只要 formatted 在、但格式变了就直接返回 None，让同响应里的 datetime
+    字段白给——这里把回退链真正打通。
+    """
+    raw = raw or ""
+    candidates: list[str] = []
+    for key in ("formatted", "datetime"):
+        m = re.search(r'"%s"\s*:\s*"([^"]+)"' % key, raw)
         if m:
-            candidate = f"{m.group(1)} {m.group(2)}"
-    if not candidate:
-        return None
-    try:
-        return datetime.strptime(candidate.replace("T", " ")[:19], "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        return None
+            candidates.append(m.group(1))
+    m = re.search(r'"timestamp"\s*:\s*"?(\d{10,13})"?', raw)
+    if m:
+        candidates.append(m.group(1))
+    m = re.search(r"(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})", raw)
+    if m:
+        candidates.append(f"{m.group(1)} {m.group(2)}")
+
+    for cand in candidates:
+        dt = _to_datetime(cand)
+        if dt:
+            return dt
+    return None
 
 
 def _int_field(raw: str, key: str) -> int:
@@ -314,12 +342,14 @@ def parse_campaigns(raw: str) -> list[dict]:
     if current:
         out.append(current)
 
-    seen: set[str] = set()
+    # 去重键用 (日期, 标题)：不同日期的同名活动不能被误删
+    seen: set[tuple] = set()
     uniq: list[dict] = []
     for c in out:
-        if not c["title"] or c["title"] in seen:
+        key = (c.get("date", ""), c["title"])
+        if not c["title"] or key in seen:
             continue
-        seen.add(c["title"])
+        seen.add(key)
         m = re.match(r"(\d{4})年(\d{1,2})月(\d{1,2})日\s*(.*)", c["date"])
         if m:
             c["label"] = "%s/%02d" % (m.group(2), int(m.group(3)))
@@ -482,6 +512,9 @@ def build_model(data: dict, now: datetime | None) -> dict:
         "account": account,
         "campaigns": picked,
         "today_count": len(today_items),
+        "campaign_total": len(campaigns),
+        "campaign_shown": len(picked),
+        "time_source": "server" if now else "local",
         "risky": risky,
         "risky_omitted": risky_omitted,
         "same_day_count": same_day_count,
@@ -691,7 +724,13 @@ def _render_campaigns(model: dict) -> str:
         hot = ' style="color:#DA291C;font-weight:500"' if c.get("badge") == "今日" else ""
         lis.append(f'<li><span class="d"{hot}>{_e(c.get("badge") or "")}</span>'
                    f'<span class="t">{text}</span></li>')
-    tag = f'<span class="tag">今日 {model["today_count"]} 条</span>' if model.get("today_count") else ""
+    tag = ""
+    if model.get("today_count"):
+        tag = f'今日 {model["today_count"]} 条'
+        # 徽章数字和下面对得上的条数不一样时，把「展示了几条」也说清楚
+        if (model.get("campaign_total") or 0) > (model.get("campaign_shown") or 0):
+            tag += f' · 展示 {model["campaign_shown"]} 条'
+        tag = f'<span class="tag">{tag}</span>'
     return f'<div class="sec"><h2>活动日历{tag}</h2><ul class="list">{"".join(lis)}</ul></div>'
 
 
@@ -722,10 +761,15 @@ def render(model: dict, template: str) -> str:
     now = model["now"]
     if now:
         head = now.strftime("%Y-%m-%d %H:%M") + "<br>" + _WEEKDAYS[now.weekday()]
+        basis = ""
     else:
-        head = "时间未知"
+        # 服务器时间没取到，只能用本机时间兜底——那就必须在卡片上写明
+        local = datetime.now()
+        head = local.strftime("%Y-%m-%d %H:%M") + "<br>" + _WEEKDAYS[local.weekday()]
+        basis = "时间基准：本机时间（服务器时间未取到）"
     repl = {
         "{{GENERATED_AT}}": head,
+        "{{TIME_BASIS}}": _e(basis),
         "{{WARN_BANNER}}": _render_banner(model),
         "{{HEADLINE}}": _e(_headline(model)),
         "{{STAT_OWNED}}": _stat(ok.get("owned", True), model["stats"]["owned"], "张"),
@@ -739,6 +783,11 @@ def render(model: dict, template: str) -> str:
     }
     for k, v in repl.items():
         out = out.replace(k, v)
+
+    # 自定义模板缺键时，str.replace 会静默留下一整块 {{...}}，必须显式报错
+    leftovers = sorted(set(re.findall(r"\{\{[A-Z_]+\}\}", out)))
+    if leftovers:
+        raise ValueError("模板里还有未替换的占位符：" + "、".join(leftovers))
     return out
 
 
@@ -913,10 +962,19 @@ def _run(args) -> int:
     if not template_path.is_file():
         print(f"[!] 找不到卡片模板：{template_path}", file=sys.stderr)
         return 1
-    html_out = render(model, template_path.read_text(encoding="utf-8"))
+    try:
+        html_out = render(model, template_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        print(f"[!] 卡片模板不可用：{exc}", file=sys.stderr)
+        return 1
 
     out_path = Path(args.out)
-    out_path.write_text(html_out, encoding="utf-8")
+    try:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(html_out, encoding="utf-8")
+    except OSError as exc:
+        print(f"[!] 无法写入卡片 {out_path}：{exc}", file=sys.stderr)
+        return 1
 
     if args.json_out:
         payload = {k: v for k, v in data.items() if not k.endswith("_raw")}
@@ -927,10 +985,16 @@ def _run(args) -> int:
         payload["risky"] = [
             {k: v for k, v in c.items() if k != "image"} for c in model["risky"]
         ]
-        Path(args.json_out).write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2, default=str),
-            encoding="utf-8",
-        )
+        json_path = Path(args.json_out)
+        try:
+            json_path.parent.mkdir(parents=True, exist_ok=True)
+            json_path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, default=str),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            print(f"[!] 无法写入 JSON {json_path}：{exc}", file=sys.stderr)
+            return 1
 
     s = model["stats"]
     print(f"[+] 持仓卡已生成：{out_path.resolve()}")

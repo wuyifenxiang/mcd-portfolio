@@ -329,7 +329,8 @@ def ensure_remote_repo(token: str, login: str, name: str, desc: str,
                 raise Fail("改为公开失败，请手动到仓库 Settings 里调整。")
         ok(f"远端仓库已存在：{name}")
         apply_meta(token, login, name, desc, dry)
-        return data.get("html_url", f"https://github.com/{login}/{name}")
+        # 注意用 `or`：键存在但值为 null 时，默认值参数救不了场，会把 None 传出去
+        return data.get("html_url") or f"https://github.com/{login}/{name}"
 
     if status != 404:
         raise Fail(f"查询仓库失败：HTTP {status} {data.get('message', '')}")
@@ -346,7 +347,7 @@ def ensure_remote_repo(token: str, login: str, name: str, desc: str,
         raise Fail(f"创建仓库失败：HTTP {status} {data.get('message', '')}")
     ok(f"已创建 {'私有' if private else '公开'}仓库：{name}")
     apply_meta(token, login, name, desc, dry)
-    return data.get("html_url", "")
+    return data.get("html_url") or f"https://github.com/{login}/{name}"
 
 
 # 代理把连接掐断时的典型报错
@@ -428,9 +429,18 @@ def push_repo(root: Path, login: str, name: str, token: str,
     try:
         proc = _try_push(root, ["-c", "credential.helper="] + push_args)
     finally:
-        # 不论成败都换回干净地址，Token 不能留在 .git/config 里
-        run(["git", "remote", "set-url", "origin", clean_url], cwd=root)
-        ok("远端地址已还原为不含 Token 的形式")
+        # 不论成败都换回干净地址，Token 绝不能留在 .git/config 里。
+        # 这里故意用 check=False：还原自身失败不能顶掉真正的推送报错，
+        # 但必须显式告警，让用户自己去检查 .git/config。
+        restore = subprocess.run(
+            ["git", "remote", "set-url", "origin", clean_url],
+            cwd=str(root), capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if restore.returncode == 0:
+            ok("远端地址已还原为不含 Token 的形式")
+        else:
+            warn("远端地址还原失败！请手动检查 .git/config 里是否残留带 Token 的 origin 地址。")
 
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "").strip()
