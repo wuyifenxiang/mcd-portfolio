@@ -17,10 +17,15 @@
 
 用法
 ----
-    export GITHUB_TOKEN=ghp_xxx        # 需要 repo / public_repo 权限
-    python tools/publish_github.py --dry-run     # 先演练，不改任何东西
-    python tools/publish_github.py               # 建库 + 推送
-    python tools/publish_github.py --issue       # 顺便提交报名 Issue
+    # macOS / Linux
+    export GITHUB_TOKEN=ghp_xxx
+    python3 tools/publish_github.py --dry-run    # 先演练（不提交、不建库、不推送）
+    python3 tools/publish_github.py              # 建库 + 推送
+    python3 tools/publish_github.py --issue      # 顺便提交报名 Issue
+
+    # Windows PowerShell
+    $env:GITHUB_TOKEN="ghp_xxx"
+    python tools\publish_github.py --dry-run
 
 Token 获取：GitHub → Settings → Developer settings → Personal access tokens
             → Fine-grained tokens（给 Contents: Read and write + Issues: Read and write）

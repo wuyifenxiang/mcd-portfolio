@@ -15,10 +15,15 @@
 
 用法
 ----
+    # macOS / Linux
     export MCD_MCP_TOKEN=your_token
-    python mcd_portfolio.py                 # 生成 card.html
-    python mcd_portfolio.py --claim          # 先一键领取麦麦省全部券，再生成
-    python mcd_portfolio.py --json data.json # 同时导出结构化数据
+    python3 mcd_portfolio.py                  # 生成 card.html
+    python3 mcd_portfolio.py --claim          # 先一键领取麦麦省全部券，再生成
+    python3 mcd_portfolio.py --json data.json # 同时导出结构化数据
+
+    # Windows PowerShell
+    $env:MCD_MCP_TOKEN="your_token"
+    python mcd_portfolio.py --out card.html
 """
 
 from __future__ import annotations

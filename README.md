@@ -51,19 +51,34 @@
 
 免费，一分钟搞定。
 
-### 2. 配置
+### 2. 配置 Token
 
 ```bash
+# macOS / Linux
 export MCD_MCP_TOKEN=<你的Token>
+```
+
+```powershell
+# Windows PowerShell
+$env:MCD_MCP_TOKEN="<你的Token>"
 ```
 
 ### 3. 跑
 
 ```bash
+# macOS / Linux
 python3 skills/mcd-portfolio/scripts/mcd_portfolio.py --out card.html
 ```
 
+```powershell
+# Windows PowerShell
+python skills\mcd-portfolio\scripts\mcd_portfolio.py --out card.html
+```
+
 只用 Python 标准库，**零依赖**，Python 3.9+ 均可。
+
+> 拿不准环境是否就绪时，先跑 `python skills\mcd-portfolio\scripts\mcd_portfolio.py --help`
+> （或 `python3 ...`），能打印帮助就说明依赖没问题。
 
 看到这样的输出就成了：
 
@@ -96,10 +111,19 @@ python3 skills/mcd-portfolio/scripts/mcd_portfolio.py --out card.html
 仓库自带发布工具，不依赖 `gh` CLI，只用 Python 标准库 + 原生 git：
 
 ```bash
+# macOS / Linux
 export GITHUB_TOKEN=ghp_xxx      # 需要 Contents 与 Issues 的读写权限
-python tools/publish_github.py --dry-run   # 先演练，不改动任何东西
-python tools/publish_github.py             # 建公开仓库 + 推送
-python tools/publish_github.py --issue     # 顺便提交参赛报名 Issue
+python3 tools/publish_github.py --dry-run   # 先演练，不改动任何东西
+python3 tools/publish_github.py             # 建公开仓库 + 推送
+python3 tools/publish_github.py --issue     # 顺便提交参赛报名 Issue
+```
+
+```powershell
+# Windows PowerShell
+$env:GITHUB_TOKEN="ghp_xxx"
+python tools\publish_github.py --dry-run
+python tools\publish_github.py
+python tools\publish_github.py --issue
 ```
 
 发布前会自动过四道自检，任何一道不过就停手：

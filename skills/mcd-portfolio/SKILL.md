@@ -37,8 +37,15 @@ Token 通过环境变量 `MCD_MCP_TOKEN` 传入，**不要写进任何会被提�
 ### 方式一：跑脚本（推荐，结果确定）
 
 ```bash
+# macOS / Linux
 export MCD_MCP_TOKEN=<你的Token>
 python3 scripts/mcd_portfolio.py --out card.html --json data.json
+```
+
+```powershell
+# Windows PowerShell
+$env:MCD_MCP_TOKEN="<你的Token>"
+python scripts\mcd_portfolio.py --out card.html --json data.json
 ```
 
 脚本只用 Python 标准库，会依次调用 5 个 MCP 工具、解析结果、渲染卡片。
