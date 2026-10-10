@@ -112,7 +112,7 @@ python skills\mcd-portfolio\scripts\mcd_portfolio.py --out card.html
 
 ```bash
 # macOS / Linux
-export GITHUB_TOKEN=ghp_xxx      # 需要 Contents 与 Issues 的读写权限
+export GITHUB_TOKEN=ghp_xxx
 python3 tools/publish_github.py --dry-run   # 先演练，不改动任何东西
 python3 tools/publish_github.py             # 建公开仓库 + 推送
 python3 tools/publish_github.py --issue     # 顺便提交参赛报名 Issue
@@ -126,7 +126,16 @@ python tools\publish_github.py
 python tools\publish_github.py --issue
 ```
 
-发布前会自动过四道自检，任何一道不过就停手：
+**Token 获取与权限**：GitHub → Settings → Developer settings → Personal access tokens。
+脚本会调 `/user`、`POST /user/repos`、`PATCH /repos/...`、`PUT /repos/.../topics`、
+`POST /repos/.../issues`，因此权限必须覆盖建库：
+
+- **classic token**：勾选 `repo`（已含 Contents / Issues / 建库）。
+- **fine-grained token**：`Contents(RW)` + `Issues(RW)` + `Administration(RW)`
+  （或 `Repository creation(RW)`）。只勾 Contents + Issues 会在建库那一步报 403。
+
+发布前会自动过四道自检，任何一道不过就停手（`--dry-run` 只跑第 1、2 道，
+**不会**初始化仓库、写 git 身份或提交代码）：
 
 1. **必需文件**：5 个参赛文件的文件名逐一核对
 2. **密钥扫描**：扫全仓库，发现硬编码 Token 直接中止推送
@@ -134,9 +143,8 @@ python tools\publish_github.py --issue
 4. **Token 校验**：调 `/user` 接口确认有效
 
 另外两个细节：推送用的是临时带凭证的远端地址，**推完立刻换回干净地址**，
-Token 不会留在 `.git/config` 里；默认**不加** `--force`，远端有他人提交时会停下来问你。
-
-Token 获取：GitHub → Settings → Developer settings → Personal access tokens。
+Token 不会留在 `.git/config` 里；默认**不加** `--force`——远端有他人提交时推送会失败，
+并提示你确认内容后加 `--force` 重跑（没有交互式确认）。
 
 ## 依赖的 MCP 工具
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+r"""
 一键发布 mcd-portfolio 到 GitHub
 =================================
 
@@ -27,8 +27,18 @@
     $env:GITHUB_TOKEN="ghp_xxx"
     python tools\publish_github.py --dry-run
 
-Token 获取：GitHub → Settings → Developer settings → Personal access tokens
-            → Fine-grained tokens（给 Contents: Read and write + Issues: Read and write）
+Token 权限（脚本实际调用的接口决定）
+------------------------------------
+    GET  /user                      校验 Token
+    POST /user/repos                建仓库   ← 需要建库权限
+    PATCH /repos/{owner}/{repo}     改简介 / private
+    PUT  /repos/{owner}/{repo}/topics 同步标签
+    POST /repos/{owner}/{repo}/issues 提交报名 Issue
+
+    classic token：勾选 repo（已含 Contents / Issues / 建库）。
+    fine-grained token：需要 Contents(RW) + Issues(RW)
+                        + Administration(RW)（或 Repository creation(RW)）。
+    只勾 Contents + Issues 会在建库那一步报 403。
 """
 
 from __future__ import annotations
@@ -259,8 +269,9 @@ def verify_token(token: str) -> dict:
     status, data = gh_request("GET", "/user", token)
     if status == 401:
         raise Fail(
-            "Token 无效或已过期（401）。请重新生成，"
-            "并确认勾选了 Contents 与 Issues 的读写权限。"
+            "Token 无效或已过期（401）。请重新生成，并确认勾选了"
+            " Contents(RW) + Issues(RW) + 建库权限（Administration(RW)"
+            " 或 Repository creation(RW)），否则建库那一步会报 403。"
         )
     if status != 200:
         raise Fail(f"校验 Token 失败：HTTP {status} {data.get('message', '')}")
@@ -514,18 +525,23 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 "缺少 GitHub Token。\n"
                 "  1) GitHub → Settings → Developer settings → Personal access tokens\n"
-                "  2) 勾选 Contents: Read and write、Issues: Read and write\n"
+                "  2) classic 勾 repo；fine-grained 勾 Contents(RW) + Issues(RW)\n"
+                "     + Administration(RW)（或 Repository creation(RW)，建库用）\n"
                 f"  3) export {TOKEN_ENV}=<你的Token>，或用 --token 传入",
                 file=sys.stderr,
             )
             return 2
 
     try:
+        # 演练只跑两件绝对无副作用的自检：查文件、扫密钥。
+        # 任何会写盘的步骤（git init / config / add / commit）都必须排在 dry-run 之后，
+        # 否则 README 承诺的"先演练，不改动任何东西"就是假的。
         check_required_files(root)
         secret_scan(root)
-        ensure_git_ready(root, args.git_name, args.git_email, args.commit_message)
 
         if args.dry_run:
+            step("3/5 准备 git 仓库")
+            print("  (演练) 跳过：不初始化仓库、不写身份、不提交")
             step("4/5 校验 GitHub Token")
             print("  (演练) 跳过")
             step("5/5 建库与推送")
@@ -538,6 +554,7 @@ def main(argv: list[str] | None = None) -> int:
             print("\n演练完成。去掉 --dry-run 即可真正发布。")
             return 0
 
+        ensure_git_ready(root, args.git_name, args.git_email, args.commit_message)
         user = verify_token(token)
         login = user["login"]
 
