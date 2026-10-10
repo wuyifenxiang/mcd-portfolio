@@ -325,6 +325,11 @@ def parse_campaigns(raw: str) -> list[dict]:
 # 模型层
 # --------------------------------------------------------------------------
 
+# 卡片「即将归零」区块最少铺几条，以及同期券最多展开几条
+MIN_RISK_ROWS = 3
+MAX_RISK_ROWS = 8
+
+
 def _parse_date(value: str | None):
     if not value:
         return None
@@ -366,9 +371,20 @@ def build_model(data: dict, now: datetime | None) -> dict:
         c["days_left"] = (end.date() - today).days if end else None
         c["usable_now"] = _usable_now(c.get("windows") or [], now)
 
-    risky = [c for c in owned if c.get("days_left") is not None and c["days_left"] >= 0]
-    risky.sort(key=lambda c: c["days_left"])
+    risky_all = [c for c in owned if c.get("days_left") is not None and c["days_left"] >= 0]
+    risky_all.sort(key=lambda c: c["days_left"])
     expired = [c for c in owned if c.get("days_left") is not None and c["days_left"] < 0]
+
+    # 最早到期的那一批必须整批露出，否则顶部结论句的张数会和卡片里的券块对不上。
+    # 先用最早批次铺满，再用次早的补足到 MIN_RISK_ROWS 条。
+    min_days = risky_all[0]["days_left"] if risky_all else None
+    same_day_count = sum(1 for c in risky_all if c["days_left"] == min_days)
+    primary = [c for c in risky_all if c["days_left"] == min_days]
+    rest = [c for c in risky_all if c["days_left"] != min_days]
+    shown_primary = primary[:MAX_RISK_ROWS]
+    risky = shown_primary + rest[: max(0, MIN_RISK_ROWS - len(shown_primary))]
+    # 极端情况下同期券多到展示不下，记下来以便卡片显式说明
+    risky_omitted = max(0, len(primary) - len(shown_primary))
 
     grouped: dict[str, int] = {}
     for c in claimable:
@@ -402,7 +418,9 @@ def build_model(data: dict, now: datetime | None) -> dict:
         "account": account,
         "campaigns": picked,
         "today_count": len(today_items),
-        "risky": risky[:3],
+        "risky": risky,
+        "risky_omitted": risky_omitted,
+        "same_day_count": same_day_count,
         "expired_count": len(expired),
         "stats": {
             "owned": len(owned),
@@ -429,15 +447,22 @@ def _headline(model: dict) -> str:
     risky = model["risky"]
     bits: list[str] = []
     if risky:
-        top = risky[0]
-        d = top["days_left"]
+        d = risky[0]["days_left"]
+        n = model["same_day_count"]
         when = "今天" if d == 0 else f"{d} 天后"
-        bits.append(f"有 1 张券 {when}归零")
+        bits.append(f"有 {n} 张券 {when}归零")
     if claimable:
         bits.append(f"{claimable} 张券还没领")
-    if not bits:
-        return "账户很干净，暂时没有需要处理的券。"
-    return "你的麦当劳账户里，" + "，".join(bits) + "。"
+    if bits:
+        return "你的麦当劳账户里，" + "，".join(bits) + "。"
+
+    # 没有在有效期内的券时，别急着说"账户很干净"——过期和本来就没有是两回事
+    expired = model.get("expired_count") or 0
+    if expired:
+        return f"你的麦当劳账户里，有 {expired} 张券已经过期作废。"
+    if not model.get("owned"):
+        return "你的麦当劳账户里，目前没有持有中的优惠券。"
+    return "持有中的券都还没到需要处理的阶段。"
 
 
 def _render_risk(model: dict) -> str:
@@ -480,6 +505,11 @@ def _render_risk(model: dict) -> str:
             f'<div class="name">{_e(c["name"])}</div>'
             f'<div class="meta">{"<br>".join(metas) if metas else "—"}</div>'
             "</div></div>"
+        )
+
+    if model.get("risky_omitted"):
+        cards.append(
+            f'<div class="empty">另有 {model["risky_omitted"]} 张同日到期的券未展开。</div>'
         )
 
     return (
