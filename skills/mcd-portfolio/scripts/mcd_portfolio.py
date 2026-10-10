@@ -152,9 +152,14 @@ class McpClient:
 # --------------------------------------------------------------------------
 
 DATE_RANGE_RE = re.compile(
-    r"(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s*-\s*(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}"
+    r"(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}(?::\d{2})?\s*-\s*"
+    r"(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}(?::\d{2})?"
 )
 TIME_WINDOW_RE = re.compile(r"\d{2}:\d{2}\s*-\s*\d{2}:\d{2}")
+DATE_TOKEN_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_CN_DATE_RE = re.compile(r"(\d{4})年(\d{1,2})月(\d{1,2})日")
+_CN_MONTH_RE = re.compile(r"(\d{4})年(\d{1,2})月")
+_TZ_TAIL_RE = re.compile(r"(\d{2}:\d{2}(?::\d{2})?)\s*(?:Z|\+\d{2}:?\d{2})")
 
 
 def _clean(text: str) -> str:
@@ -225,21 +230,61 @@ def parse_account(raw: str) -> dict:
     }
 
 
+def _normalize_validity(text: str) -> str:
+    """把有效期的常见写法归一化成 `YYYY-MM-DD HH:MM[:SS]` 形态。
+
+    只动分隔符、不动数字：`/` 与 `.` 归一成 `-`；中文「年月日」归一成
+    `YYYY-MM-DD`；ISO 8601 的 `T` 归一成空格；`~` 与「至」归一成 `-`；
+    并去掉紧跟在时间后面的时区尾巴（`Z` / `+08:00`）。
+
+    这是二次复核 R2 的整改：原实现只认一种严格形态，一旦后端把时间戳精度
+    从「分」演进到「秒」，正则就整体失配，然后退化成「把开始日期当结束日期」。
+    """
+    out = text.replace("/", "-").replace(".", "-")
+    out = _CN_DATE_RE.sub(
+        lambda m: "%s-%02d-%02d" % (m.group(1), int(m.group(2)), int(m.group(3))),
+        out,
+    )
+    out = _CN_MONTH_RE.sub(lambda m: "%s-%02d" % (m.group(1), int(m.group(2))), out)
+    out = out.replace("T", " ")
+    out = _TZ_TAIL_RE.sub(r"\1", out)
+    return out.replace("~", "-").replace("至", "-")
+
+
 def _split_validity(text: str) -> tuple[str | None, str | None, list[str]]:
-    """拆出 有效期 里的 起止日期 与 可用时段。"""
+    """拆出 有效期 里的 起止日期 与 可用时段。
+
+    解析不出来时把 end 留成 None，由上层送进「到期日无法解析」区块——
+    **绝不猜一个日期出来**。猜错会直接变成卡片上的一句假话：例如把开始日期
+    当成到期日，会让一张还有 26 天有效期的券被断言「已经过期作废」。
+    """
     if not text:
         return None, None, []
+
+    norm = _normalize_validity(text)
     start = end = None
-    rest = text
-    m = DATE_RANGE_RE.search(text)
+    rest = norm
+
+    m = DATE_RANGE_RE.search(norm)
     if m:
         start, end = m.group(1), m.group(2)
-        rest = text[m.end():]
+        rest = norm[m.end():]
     else:
-        m = re.search(r"(\d{4}-\d{2}-\d{2})", text)
-        if m:
-            end = m.group(1)
+        # 回退必须保守：只有当整串里出现**恰好一个**日期 token 时，
+        # 才敢把它当成到期日；出现两个及以上说明我们没看懂结构，不猜。
+        dates = DATE_TOKEN_RE.findall(norm)
+        if len(dates) == 1:
+            end = dates[0]
+        elif len(dates) >= 2:
+            start, end = dates[0], dates[-1]
+
     windows = [w.replace(" ", "") for w in TIME_WINDOW_RE.findall(rest)]
+
+    # 一致性护栏：起止都解析出来了、但先后颠倒，说明切错了位置，一律判为不可信。
+    start_dt, end_dt = _to_datetime(start), _to_datetime(end)
+    if start_dt and end_dt and end_dt < start_dt:
+        return None, None, windows
+
     return start, end, windows
 
 
