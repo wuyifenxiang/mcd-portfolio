@@ -408,6 +408,14 @@ def build_model(data: dict, now: datetime | None) -> dict:
     risky_all.sort(key=lambda c: c["days_left"])
     expired = [c for c in owned if c.get("days_left") is not None and c["days_left"] < 0]
 
+    # 到期日解析不出来的券：既进不了 risky，也进不了 expired，会被静默吞掉。
+    # 单独收起来在卡片上说明，避免出现「统计 1 张、列表 0 张」的自相矛盾。
+    unparsed = [
+        {"name": c["name"], "validity": c.get("validity") or "(接口未返回有效期字段)"}
+        for c in owned
+        if c.get("days_left") is None
+    ]
+
     # 最早到期的那一批必须整批露出，否则顶部结论句的张数会和卡片里的券块对不上。
     # 先用最早批次铺满，再用次早的补足到 MIN_RISK_ROWS 条。
     min_days = risky_all[0]["days_left"] if risky_all else None
@@ -455,6 +463,7 @@ def build_model(data: dict, now: datetime | None) -> dict:
         "risky_omitted": risky_omitted,
         "same_day_count": same_day_count,
         "expired_count": len(expired),
+        "unparsed": unparsed,
         "ok": ok,
         "failed_tools": failed_tools,
         "data_complete": data_complete,
@@ -530,9 +539,13 @@ def _render_risk(model: dict) -> str:
 
     risky = model["risky"]
     if not risky:
-        note = "当前没有持有中的优惠券。"
-        if model["expired_count"]:
-            note = f"有 {model['expired_count']} 张券已过期，当前没有持有中的优惠券。"
+        # 有券但到期日解析不出来时，不能说「没有持有中的优惠券」——那会和上方统计打架
+        if model.get("unparsed") and not model["expired_count"]:
+            note = "可识别到期日的券里，暂时没有即将归零的。"
+        elif model["expired_count"]:
+            note = f"有 {model['expired_count']} 张券已过期；其余券都不在即将归零范围内。"
+        else:
+            note = "当前没有持有中的优惠券。"
         return (
             '<div class="sec"><h2>即将归零</h2>'
             f'<div class="empty">{_e(note)}</div></div>'
@@ -579,6 +592,27 @@ def _render_risk(model: dict) -> str:
         '<span class="tag">优先处理</span></h2>'
         + "".join(cards)
         + "</div>"
+    )
+
+
+def _render_unparsed(model: dict) -> str:
+    """把到期日解析不出来的券单独列出来，不再让它们人间蒸发。"""
+    items = model.get("unparsed") or []
+    if not items:
+        return ""
+    lis = []
+    for c in items:
+        lis.append(
+            f'<li><span class="t">{_e(c["name"])}'
+            '<div style="color:#6B6A66;font-size:12px;margin-top:3px">'
+            f'原始有效期：{_e(c["validity"])}</div></span></li>'
+        )
+    return (
+        '<div class="sec"><h2>到期日无法解析'
+        f'<span class="tag">{len(items)} 张</span></h2>'
+        '<div class="empty">以下券的到期日无法从接口返回值里解析出来，'
+        '未计入「即将归零」判断，但仍计入上方「已持有券」张数。</div>'
+        f'<ul class="list">{"".join(lis)}</ul></div>'
     )
 
 
@@ -670,6 +704,7 @@ def render(model: dict, template: str) -> str:
         "{{STAT_CLAIMABLE}}": _stat(ok.get("claimable", True), model["stats"]["claimable"], "张"),
         "{{STAT_POINTS}}": _stat(ok.get("account", True), model["stats"]["points"], "分"),
         "{{RISK_SECTION}}": _render_risk(model),
+        "{{UNPARSED_SECTION}}": _render_unparsed(model),
         "{{CLAIM_SECTION}}": _render_claim(model),
         "{{CAMPAIGN_SECTION}}": _render_campaigns(model),
         "{{SUMMARY_LINE}}": _e(_render_summary(model)),
@@ -784,6 +819,7 @@ def _run(args) -> int:
         payload["stats"] = model["stats"]
         payload["claimable_grouped"] = model["claimable_grouped"]
         payload["today_count"] = model["today_count"]
+        payload["unparsed"] = model["unparsed"]
         payload["risky"] = [
             {k: v for k, v in c.items() if k != "image"} for c in model["risky"]
         ]
