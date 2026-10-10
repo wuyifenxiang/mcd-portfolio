@@ -13,7 +13,7 @@
 
 ![麦门持仓卡片示例](docs/preview.png)
 
-> 上图为脚本真实输出的卡片（2026-10-10 实测）。运行后会生成 `card.html`，
+> 上图为脚本输出卡片的渲染图（2026-10-10 实测）。运行后会生成 `card.html`，
 > 直接打开、截图即可分享。完整 HTML 见 [`docs/example-card.html`](docs/example-card.html)。
 
 ## 为什么做这个
@@ -178,7 +178,7 @@ mcd-portfolio/
 ├── .gitignore
 ├── docs/
 │   ├── example-card.html           # 真实运行结果（完整卡片）
-│   └── preview.png                # 卡片预览图（由真实输出截图，2x）
+│   └── preview.png                 # 卡片渲染图（2x，由真实 card.html 渲染导出）
 ├── tools/
 │   └── publish_github.py           # 一键发布到 GitHub（含密钥扫描）
 └── skills/mcd-portfolio/
