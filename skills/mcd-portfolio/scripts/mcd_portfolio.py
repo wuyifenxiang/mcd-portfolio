@@ -334,6 +334,19 @@ def parse_campaigns(raw: str) -> list[dict]:
 MIN_RISK_ROWS = 3
 MAX_RISK_ROWS = 8
 
+# ok 标记的键 → 工具名，用于把「哪个工具挂了」讲给用户听
+TOOL_LABELS = {
+    "now": "now-time-info",
+    "owned": "query-my-coupons",
+    "claimable": "available-coupons",
+    "account": "query-my-account",
+    "campaign": "campaign-calendar",
+    "bind": "auto-bind-coupons",
+}
+
+# 这几个工具取不到时，卡片绝不允许把「没取到」说成「没有」
+CRITICAL_TOOLS = ("now", "owned", "claimable", "account")
+
 
 def _parse_date(value: str | None):
     if not value:
@@ -368,6 +381,11 @@ def build_model(data: dict, now: datetime | None) -> dict:
     claimable = data.get("claimable_coupons") or []
     account = data.get("account") or {}
     campaigns = data.get("campaigns") or []
+    ok = data.get("ok") or {}
+
+    # 关键工具里只要有没取到的，就不能再输出「账户很干净」这类肯定判断
+    failed_tools = [TOOL_LABELS[k] for k in CRITICAL_TOOLS if not ok.get(k, True)]
+    data_complete = not failed_tools
 
     today = (now or datetime.now()).date()
 
@@ -427,6 +445,9 @@ def build_model(data: dict, now: datetime | None) -> dict:
         "risky_omitted": risky_omitted,
         "same_day_count": same_day_count,
         "expired_count": len(expired),
+        "ok": ok,
+        "failed_tools": failed_tools,
+        "data_complete": data_complete,
         "stats": {
             "owned": len(owned),
             "claimable": len(claimable),
@@ -446,8 +467,21 @@ def _e(value) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
+def _render_banner(model: dict) -> str:
+    """取数不全时的显著提示条。没有失败就不渲染。"""
+    failed = model.get("failed_tools") or []
+    if not failed:
+        return ""
+    names = "、".join(_e(t) for t in failed)
+    return (
+        '<div class="warn"><b>!</b> 部分数据未取到（' + names + '）。'
+        '下面标「未取到」的数字不代表真实为 0，请稍后重试。</div>'
+    )
+
+
 def _headline(model: dict) -> str:
     """卡片顶部那句最关键的话——它决定别人会不会截图。"""
+    ok = model.get("ok") or {}
     claimable = model["stats"]["claimable"]
     risky = model["risky"]
     bits: list[str] = []
@@ -456,12 +490,17 @@ def _headline(model: dict) -> str:
         n = model["same_day_count"]
         when = "今天" if d == 0 else f"{d} 天后"
         bits.append(f"有 {n} 张券 {when}归零")
-    if claimable:
+    # 只有确认取到了麦麦省数据，才敢报「还没领」
+    if claimable and ok.get("claimable", True):
         bits.append(f"{claimable} 张券还没领")
     if bits:
         return "你的麦当劳账户里，" + "，".join(bits) + "。"
 
-    # 没有在有效期内的券时，别急着说"账户很干净"——过期和本来就没有是两回事
+    # 取数不全时，绝不下「没有需要处理的券」这类肯定结论
+    if not model.get("data_complete", True):
+        return "部分数据未取到，暂时无法给出账户结论，请看下方提示条。"
+
+    # 没有在有效期内的券时，也别急着说「账户很干净」——过期和本来就没有是两回事
     expired = model.get("expired_count") or 0
     if expired:
         return f"你的麦当劳账户里，有 {expired} 张券已经过期作废。"
@@ -471,6 +510,14 @@ def _headline(model: dict) -> str:
 
 
 def _render_risk(model: dict) -> str:
+    ok = model.get("ok") or {}
+    if not ok.get("owned", True):
+        return (
+            '<div class="sec"><h2>即将归零</h2>'
+            '<div class="empty">未取到券数据（query-my-coupons 调用失败），'
+            '暂时无法判断哪些券即将到期。</div></div>'
+        )
+
     risky = model["risky"]
     if not risky:
         note = "当前没有持有中的优惠券。"
@@ -526,6 +573,12 @@ def _render_risk(model: dict) -> str:
 
 
 def _render_claim(model: dict) -> str:
+    ok = model.get("ok") or {}
+    if not ok.get("claimable", True):
+        return (
+            '<div class="sec"><h2>待领取 · 麦麦省</h2>'
+            '<div class="empty">未取到麦麦省数据（available-coupons 调用失败）。</div></div>'
+        )
     grouped = model["claimable_grouped"]
     if not grouped:
         return (
@@ -548,9 +601,12 @@ def _render_claim(model: dict) -> str:
 def _render_campaigns(model: dict) -> str:
     items = model["campaigns"]
     if not items:
+        ok = model.get("ok") or {}
+        msg = ("未取到活动日历（campaign-calendar 调用失败）。"
+               if not ok.get("campaign", True) else "本月暂无活动。")
         return (
             '<div class="sec"><h2>活动日历</h2>'
-            '<div class="empty">暂未读到活动日历。</div></div>'
+            f'<div class="empty">{_e(msg)}</div></div>'
         )
     lis = []
     for c in items:
@@ -568,11 +624,12 @@ def _render_campaigns(model: dict) -> str:
 
 
 def _render_summary(model: dict) -> str:
+    ok = model.get("ok") or {}
     s = model["stats"]
     parts = [
-        f"已持有 {s['owned']} 张券",
-        f"麦麦省待领 {s['claimable']} 张",
-        f"可用积分 {s['points']} 分",
+        f"已持有 {s['owned']} 张券" if ok.get("owned", True) else "已持有券未取到",
+        f"麦麦省待领 {s['claimable']} 张" if ok.get("claimable", True) else "麦麦省待领未取到",
+        f"可用积分 {s['points']} 分" if ok.get("account", True) else "可用积分未取到",
     ]
     if model["risky"]:
         d = model["risky"][0]["days_left"]
@@ -580,8 +637,16 @@ def _render_summary(model: dict) -> str:
     return " · ".join(parts) + "。"
 
 
+def _stat(ok: bool, value, unit: str) -> str:
+    """统计块的取值：取不到时明确写「未取到」，不写 0。"""
+    if not ok:
+        return '<span class="na">未取到</span>'
+    return f'{value}<span class="u">{unit}</span>'
+
+
 def render(model: dict, template: str) -> str:
     out = template
+    ok = model.get("ok") or {}
     now = model["now"]
     if now:
         head = now.strftime("%Y-%m-%d %H:%M") + "<br>" + _WEEKDAYS[now.weekday()]
@@ -589,10 +654,11 @@ def render(model: dict, template: str) -> str:
         head = "时间未知"
     repl = {
         "{{GENERATED_AT}}": head,
+        "{{WARN_BANNER}}": _render_banner(model),
         "{{HEADLINE}}": _e(_headline(model)),
-        "{{STAT_OWNED}}": str(model["stats"]["owned"]),
-        "{{STAT_CLAIMABLE}}": str(model["stats"]["claimable"]),
-        "{{STAT_POINTS}}": str(model["stats"]["points"]),
+        "{{STAT_OWNED}}": _stat(ok.get("owned", True), model["stats"]["owned"], "张"),
+        "{{STAT_CLAIMABLE}}": _stat(ok.get("claimable", True), model["stats"]["claimable"], "张"),
+        "{{STAT_POINTS}}": _stat(ok.get("account", True), model["stats"]["points"], "分"),
         "{{RISK_SECTION}}": _render_risk(model),
         "{{CLAIM_SECTION}}": _render_claim(model),
         "{{CAMPAIGN_SECTION}}": _render_campaigns(model),
@@ -608,30 +674,36 @@ def render(model: dict, template: str) -> str:
 # --------------------------------------------------------------------------
 
 def collect(client: McpClient, claim: bool) -> dict:
-    """依次调用 MCP 工具，收集原始数据。"""
+    """依次调用 MCP 工具，收集原始数据，并记录每个工具的成败。"""
     data: dict = {}
     soft_fail: list[str] = []
+    # 成败标记：区分「真的返回了 0」和「根本没取到」的唯一依据
+    ok_flags: dict[str, bool] = {}
 
-    def try_call(name, args=None):
+    def try_call(key: str, name: str, args=None) -> str:
         try:
-            return client.call(name, args)
+            raw = client.call(name, args)
+            ok_flags[key] = True
+            return raw
         except McpError as exc:
+            ok_flags[key] = False
             soft_fail.append(f"{name}: {exc}")
             return ""
 
-    data["now_raw"] = try_call("now-time-info")
+    data["now_raw"] = try_call("now", "now-time-info")
     if claim:
-        data["bind_raw"] = try_call("auto-bind-coupons")
-    data["owned_raw"] = try_call("query-my-coupons", {"page": "1", "pageSize": "200"})
-    data["claimable_raw"] = try_call("available-coupons")
-    data["account_raw"] = try_call("query-my-account")
-    data["campaign_raw"] = try_call("campaign-calendar")
+        data["bind_raw"] = try_call("bind", "auto-bind-coupons")
+    data["owned_raw"] = try_call("owned", "query-my-coupons", {"page": "1", "pageSize": "200"})
+    data["claimable_raw"] = try_call("claimable", "available-coupons")
+    data["account_raw"] = try_call("account", "query-my-account")
+    data["campaign_raw"] = try_call("campaign", "campaign-calendar")
 
     data["now"] = parse_now(data["now_raw"])
     data["owned_coupons"] = parse_owned_coupons(data["owned_raw"])
     data["claimable_coupons"] = parse_available_coupons(data["claimable_raw"])
     data["account"] = parse_account(data["account_raw"])
     data["campaigns"] = parse_campaigns(data["campaign_raw"])
+    data["ok"] = ok_flags
     data["soft_fail"] = soft_fail
     return data
 

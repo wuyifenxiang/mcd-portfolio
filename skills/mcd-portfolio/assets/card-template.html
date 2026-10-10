@@ -52,6 +52,19 @@
     color: var(--ink);
     line-height: 1.5;
   }
+  .warn {
+    padding: 12px 28px;
+    background: #FDECEA;
+    border-bottom: 1px solid #F6CFC9;
+    color: #A81E12;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .warn b {
+    display: inline-block; width: 17px; height: 17px; margin-right: 6px;
+    border-radius: 50%; background: #DA291C; color: #fff;
+    font-size: 12px; line-height: 17px; text-align: center; vertical-align: 1px;
+  }
   .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -61,7 +74,8 @@
   .stat:last-child { border-right: 0; }
   .stat .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; }
   .stat .v { font-size: 34px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .stat .u { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .stat .v .u { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .stat .v .na { font-size: 18px; font-weight: 500; color: #A9A7A1; }
   .stat.hot .v { color: var(--red); }
   .sec { padding: 20px 28px; border-bottom: 1px solid var(--line); }
   .sec:last-of-type { border-bottom: 0; }
@@ -127,19 +141,20 @@
   </div>
 
   <div class="headline">{{HEADLINE}}</div>
+  {{WARN_BANNER}}
 
   <div class="stats">
     <div class="stat">
       <div class="k">已持有券</div>
-      <div class="v">{{STAT_OWNED}}<span class="u">张</span></div>
+      <div class="v">{{STAT_OWNED}}</div>
     </div>
     <div class="stat hot">
       <div class="k">待领取券</div>
-      <div class="v">{{STAT_CLAIMABLE}}<span class="u">张</span></div>
+      <div class="v">{{STAT_CLAIMABLE}}</div>
     </div>
     <div class="stat">
       <div class="k">可用积分</div>
-      <div class="v">{{STAT_POINTS}}<span class="u">分</span></div>
+      <div class="v">{{STAT_POINTS}}</div>
     </div>
   </div>
 
