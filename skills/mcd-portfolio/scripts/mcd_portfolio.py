@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import http.client
 import json
 import os
 import re
@@ -93,12 +94,15 @@ class McpClient:
             "params": {"name": name, "arguments": arguments or {}},
         }
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        req = urllib.request.Request(self.url, data=body, method="POST")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("Accept", "application/json, text/event-stream")
-        req.add_header("Authorization", "Bearer " + self.token)
 
+        # 整段网络操作都在 try 里：连 Request 构造都算，因为 --mcp-url 不带 scheme
+        # 时会在这一步抛 ValueError，漏在外面就会裸 traceback。
         try:
+            req = urllib.request.Request(self.url, data=body, method="POST")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("Accept", "application/json, text/event-stream")
+            req.add_header("Authorization", "Bearer " + self.token)
+
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 raw = resp.read().decode("utf-8", "replace")
                 ctype = (resp.headers.get("Content-Type") or "").lower()
@@ -120,6 +124,12 @@ class McpClient:
             raise McpError(f"HTTP {exc.code} 调用 {name} 失败：{detail}") from exc
         except urllib.error.URLError as exc:
             raise McpError(f"无法连接 {self.url}：{exc.reason}") from exc
+        except (OSError, TimeoutError, http.client.HTTPException, ValueError) as exc:
+            # 服务器接受连接但不响应（超时）、中途掐断（RemoteDisconnected /
+            # IncompleteRead）、地址不合法等，统一包成 McpError，不让异常穿透出去。
+            raise McpError(
+                f"调用 {name} 时连接异常（{type(exc).__name__}）：{exc}"
+            ) from exc
 
         if "text/event-stream" in ctype:
             raw = _extract_sse(raw)
@@ -728,6 +738,21 @@ def main(argv: list[str] | None = None) -> int:
                     help="先调用 auto-bind-coupons 领取麦麦省全部券（写操作）")
     args = ap.parse_args(argv)
 
+    # 顶层兜底：任何没被 McpError 接住的异常（网络、编码、I/O 等）都在这里
+    # 变成一句话提示，绝不把裸 traceback 甩给用户。
+    try:
+        return _run(args)
+    except McpError as exc:
+        print(f"[!] {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # noqa: BLE001 - 兜底，不吞掉，但换成可读提示
+        print(f"[!] 运行出错（{type(exc).__name__}）：{exc}", file=sys.stderr)
+        print("  请检查 --mcp-url 是否正确、网络与代理是否正常，然后重试。",
+              file=sys.stderr)
+        return 1
+
+
+def _run(args) -> int:
     if not args.token:
         print(
             "缺少 MCP Token。\n"
@@ -737,12 +762,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    try:
-        client = McpClient(args.token, args.mcp_url)
-        data = collect(client, args.claim)
-    except McpError as exc:
-        print(f"[!] {exc}", file=sys.stderr)
-        return 1
+    client = McpClient(args.token, args.mcp_url)
+    data = collect(client, args.claim)
 
     if args.claim:
         print("[*] 已请求领取麦麦省全部可领券。")
@@ -776,7 +797,19 @@ def main(argv: list[str] | None = None) -> int:
     print(f"    已持有券 {s['owned']} 张 | 麦麦省待领 {s['claimable']} 张 | 可用积分 {s['points']} 分")
     for c in model["risky"]:
         print(f"    ! {c['name']} — {c['days_left']} 天后归零")
-    for line in data.get("soft_fail", []):
+
+    soft_fail = data.get("soft_fail") or []
+    # 全部调用都失败 = 地址/网络/Token 层面的问题，必须给非 0 退出码，
+    # 否则截图传播时只剩一张「未取到」的卡，看不出其实什么都没跑通。
+    if data.get("ok") and not any(data["ok"].values()):
+        first = soft_fail[0] if soft_fail else "未知错误"
+        print(
+            f"[!] 全部数据都未取到：{first}；"
+            f"请检查 --mcp-url（当前 {args.mcp_url}）与 Token 后重试。",
+            file=sys.stderr,
+        )
+        return 1
+    for line in soft_fail:
         print(f"    (部分数据未取到) {line}", file=sys.stderr)
     return 0
 
