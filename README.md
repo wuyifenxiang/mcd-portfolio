@@ -80,6 +80,29 @@ python3 skills/mcd-portfolio/scripts/mcd_portfolio.py --out card.html
 2. 按 `mcp-config.example.json` 配好 `mcd-mcp` 连接器并启用
 3. 对 WorkBuddy 说「看看我的麦当劳券」或「给我的麦当劳账户做个体检」
 
+## 一键发布到 GitHub
+
+仓库自带发布工具，不依赖 `gh` CLI，只用 Python 标准库 + 原生 git：
+
+```bash
+export GITHUB_TOKEN=ghp_xxx      # 需要 Contents 与 Issues 的读写权限
+python tools/publish_github.py --dry-run   # 先演练，不改动任何东西
+python tools/publish_github.py             # 建公开仓库 + 推送
+python tools/publish_github.py --issue     # 顺便提交参赛报名 Issue
+```
+
+发布前会自动过四道自检，任何一道不过就停手：
+
+1. **必需文件**：5 个参赛文件的文件名逐一核对
+2. **密钥扫描**：扫全仓库，发现硬编码 Token 直接中止推送
+3. **git 状态**：补上仓库级身份、提交未提交的改动
+4. **Token 校验**：调 `/user` 接口确认有效
+
+另外两个细节：推送用的是临时带凭证的远端地址，**推完立刻换回干净地址**，
+Token 不会留在 `.git/config` 里；默认**不加** `--force`，远端有他人提交时会停下来问你。
+
+Token 获取：GitHub → Settings → Developer settings → Personal access tokens。
+
 ## 依赖的 MCP 工具
 
 | Tool | 用途 |
@@ -103,6 +126,8 @@ mcd-portfolio/
 ├── MCP_INTEGRATION.md           # MCP 集成说明
 ├── mcp-config.example.json      # MCP 配置示例（仅环境变量占位符）
 ├── workbuddy.md                 # WorkBuddy 开发对话上下文
+├── tools/
+│   └── publish_github.py        # 一键发布到 GitHub（含密钥扫描）
 └── skills/mcd-portfolio/
     ├── SKILL.md                 # Skill 定义与工作流
     ├── scripts/
