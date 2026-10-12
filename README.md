@@ -106,50 +106,16 @@ python skills\mcd-portfolio\scripts\mcd_portfolio.py --out card.html
 
 ## 一键发布到 GitHub
 
-仓库自带发布工具，不依赖 `gh` CLI，只用 Python 标准库 + 原生 git：
+仓库自带发布脚本，只用 Python 标准库 + 原生 git，不依赖 `gh` CLI：
 
 ```bash
-# macOS / Linux
-export GITHUB_TOKEN=ghp_xxx
-python3 tools/publish_github.py --dry-run   # 先演练，不改动任何东西
-python3 tools/publish_github.py             # 建公开仓库 + 推送
-python3 tools/publish_github.py --issue     # 顺便提交参赛报名 Issue
+export GITHUB_TOKEN=<你的 Token>              # Windows: $env:GITHUB_TOKEN="<你的 Token>"
+python3 tools/publish_github.py --dry-run    # 先演练，不改动任何东西
+python3 tools/publish_github.py              # 建公开仓库 + 推送
 ```
 
-```powershell
-# Windows PowerShell
-$env:GITHUB_TOKEN="ghp_xxx"
-python tools\publish_github.py --dry-run
-python tools\publish_github.py
-python tools\publish_github.py --issue
-```
-
-**Token 获取与权限**：GitHub → Settings → Developer settings → Personal access tokens。
-脚本会调 `/user`、`POST /user/repos`、`PATCH /repos/...`、`PUT /repos/.../topics`、
-`POST /repos/.../issues`，因此权限必须覆盖建库：
-
-- **classic token**：勾选 `repo`（已含 Contents / Issues / 建库）。
-- **fine-grained token**：`Contents(RW)` + `Issues(RW)` + `Administration(RW)`
-  （或 `Repository creation(RW)`）。只勾 Contents + Issues 会在建库那一步报 403。
-
-> ⚠️ **两类权限别混为一谈**：`--issue` 是向**他人拥有的仓库**
-> （`M-China/mcd-developer-innovation-challenge`）写 Issue，而 fine-grained token
-> 只能对自己名下的仓库授权，**无法**给别人的仓库开 Issues 写权限，因此只用
-> fine-grained token 时这一步基本会失败。实践上跑 `--issue` 用 **classic token 的
-> `repo` scope 最稳**；只建自己的库、不提 Issue 的话，fine-grained 完全够用。
-
-发布前会自动过四道自检，任何一道不过就停手（`--dry-run` 只跑第 1、2 道，
-**不会**初始化仓库、写 git 身份或提交代码）：
-
-1. **必需文件**：5 个参赛文件的文件名逐一核对
-2. **密钥扫描**：扫全仓库，发现硬编码 Token 直接中止推送
-3. **git 状态**：补上仓库级身份、提交未提交的改动
-4. **Token 校验**：调 `/user` 接口确认有效
-
-另外两个细节：推送用的是临时带凭证的远端地址，**正常情况下推完会立即还原成干净地址**；
-但这一步是缓解而非保证——**若还原命令自身失败，脚本会显式告警并提示你手动检查
-`.git/config` 里的 `remote.origin.url`**。默认**不加** `--force`——远端有他人提交时推送会失败，
-并提示你确认内容后加 `--force` 重跑（没有交互式确认）。
+推送前会先做全仓库密钥扫描，发现硬编码凭证就直接中止，不会推上去。
+其余参数（`--issue` 等）见 `python3 tools/publish_github.py --help`。
 
 ## 依赖的 MCP 工具
 
@@ -175,7 +141,6 @@ mcd-portfolio/
 ├── mcp-config.example.json         # MCP 配置示例（仅环境变量占位符）
 ├── workbuddy.md                    # WorkBuddy 开发对话上下文
 ├── LICENSE                         # MIT
-├── .gitignore
 ├── docs/
 │   ├── example-card.html           # 真实运行结果（完整卡片）
 │   └── preview.png                 # 卡片渲染图（2x，由真实 card.html 渲染导出）
